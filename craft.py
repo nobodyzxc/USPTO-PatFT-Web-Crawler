@@ -2,6 +2,8 @@ import Patent_Crawler as ptc
 import sys, csv
 from tqdm import tqdm
 
+# Description
+
 nos = open(sys.argv[1], 'r').read().split()
 
 with open('error.txt', 'w', newline='') as errfile:

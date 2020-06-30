@@ -12,9 +12,12 @@ from bs4 import BeautifulSoup
 # data processing
 import numpy as np
 import time, datetime
-import shutil, os, gc 
+import shutil, os, gc
 import Patent_Crawler as ptc
 import images_qr
+
+headers = {'user-agent': 'Mozilla/5.0 (Macintosh Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'}
+
 
 def URL2Soup( search_page ):
     try:
@@ -23,15 +26,15 @@ def URL2Soup( search_page ):
         soup = URL2Soup2( search_page )
     return soup
 def URL2Soup1( search_page ):
-    requested = urllib.request.urlopen(search_page)
+    requested = urllib.request.urlopen(search_page, headers = headers)
     response = requested.read()
     #except:
-    #    result = requests.get(search_page) 
+    #    result = requests.get(search_page)
     #    response = result.content
     soup = BeautifulSoup(response, "html5lib")
     return soup
 def URL2Soup2( search_page ):
-    result = requests.get(search_page) 
+    result = requests.get(search_page, headers = headers)
     response = result.content
     soup = BeautifulSoup(response, "html5lib")
     return soup
@@ -48,7 +51,7 @@ def getInfofromQuery_1st_page(query, db):
             total_PTnumber = int(aa.next_element)
             return total_PTnumber, getPNfromSoup_one_page(soup_1st_page), ''
     # if no patent: only one 'strong' tag can be found
-    
+
     for aa in soup_1st_page.find_all('span'):
         if 'patents' in aa.next_element.next_element:
             return 0, [], 'Error: No patent can be found with the query!'
@@ -81,12 +84,12 @@ class MainWindow(QMainWindow, ui):
         self.ISD.setChecked(True)
         self.CPC.setChecked(True)
         self.ABST.setChecked(True)
-        self.AN.setChecked(True) 
+        self.AN.setChecked(True)
         self.PDF.setChecked(True)
-        self.PNbt.setChecked(True) 
+        self.PNbt.setChecked(True)
         self.ut.setChecked(True)
-        self.MODEL = QtGui.QStandardItemModel()   
-        self.MODEL.setColumnCount(17) 
+        self.MODEL = QtGui.QStandardItemModel()
+        self.MODEL.setColumnCount(17)
         self.MODEL.setHorizontalHeaderLabels(['']*17)
         self.TABLE.setModel(self.MODEL)
         self.TABLE.setShowGrid(True)
@@ -99,8 +102,8 @@ class MainWindow(QMainWindow, ui):
         self.webView.settings().setAttribute(QWebEngineSettings.PluginsEnabled, True)
         self.webView.load(QUrl("http://patft.uspto.gov/netacgi/nph-Parser?Sect1=PTO2&Sect2=HITOFF&u=%2Fnetahtml%2FPTO%2Fsearch-adv.htm&r=1&p=1&f=G&l=50&d=PTXT&S1=9532164.PN.&OS=pn/9532164&RS=PN/9532164"))
         self.webView.show()
-        
-        
+
+
         # Events
         self.statusBar.showMessage('Welcome!')
         self.PNbws.clicked.connect(self.FileDialog2Line_PNCSV)
@@ -115,7 +118,7 @@ class MainWindow(QMainWindow, ui):
         self.INFO.clicked.connect(self.Crawler)
         self.STOPLOOP.clicked.connect(self.stopbool)
         self.web_PDF.clicked.connect(self.showPDF)
-        self.web_PAT.clicked.connect(self.showPAT)        
+        self.web_PAT.clicked.connect(self.showPAT)
         self.stop = False
 
     def showPAT(self):
@@ -160,7 +163,7 @@ class MainWindow(QMainWindow, ui):
         PDF_loc = self.PDFloc.text()
         if not os.path.exists(PDF_loc):
             os.makedirs(PDF_loc)
-        os.chdir(PDF_loc)  
+        os.chdir(PDF_loc)
 
         totalrow = self.MODEL.rowCount()
         for i in range(totalrow):
@@ -180,7 +183,7 @@ class MainWindow(QMainWindow, ui):
             self.statusBar.showMessage('PDF downloaded sucessfully!')
         else:
             self.statusBar.showMessage('PDF downloaded, but ' + str(error_download) + 'errors exist')
-        os.chdir(cwd)  
+        os.chdir(cwd)
         self.PDFD.setEnabled(True)
 
 
@@ -191,7 +194,7 @@ class MainWindow(QMainWindow, ui):
         if self.MODEL.headerData(0,Qt.Horizontal) != 'Patent No.':
             self.statusBar.showMessage('Please import Patent Numers first!')
             self.INFO.setEnabled(True)
-            return        
+            return
 
         self.statusBar.showMessage('Fetching info for you...')
         row = self.MODEL.rowCount()
@@ -208,7 +211,7 @@ class MainWindow(QMainWindow, ui):
         Head = ["Patent No."] + [Head[i] for i in Item]
         Head = Head + (17 - len(Head))*[' ']
         self.MODEL.setHorizontalHeaderLabels(Head)
-        
+
         for i in range(row):
             if self.stop:
                 break
@@ -297,8 +300,8 @@ class MainWindow(QMainWindow, ui):
                 except:
                     self.MODEL.setItem(i,j,QtGui.QStandardItem('error'))
                 j += 1
-                QApplication.processEvents()    
-            # CPC  
+                QApplication.processEvents()
+            # CPC
             if 6 in Item:
                 try:
                     self.MODEL.setItem(i,j,QtGui.QStandardItem(ptc.CPC(soup)))
@@ -345,7 +348,7 @@ class MainWindow(QMainWindow, ui):
                 except:
                     self.MODEL.setItem(i,j,QtGui.QStandardItem('error'))
                 j += 1
-                QApplication.processEvents() 
+                QApplication.processEvents()
             # Family ID
             if 12 in Item:
                 try:
@@ -369,28 +372,28 @@ class MainWindow(QMainWindow, ui):
                 except:
                     self.MODEL.setItem(i,j,QtGui.QStandardItem('error'))
                 j += 1
-                QApplication.processEvents()                
+                QApplication.processEvents()
             # PDF link
             if 15 in Item:
                 try:
                     self.MODEL.setItem(i,j,QtGui.QStandardItem('=HYPERLINK("'+PDF_link_full+'")'))
                 except:
-                    self.MODEL.setItem(i,j,QtGui.QStandardItem('error')  )              
+                    self.MODEL.setItem(i,j,QtGui.QStandardItem('error')  )
                 j += 1
                 QApplication.processEvents()
 
         if self.stop:
             self.stop = False
             self.statusBar.showMessage('The program is stopped on your demand.')
-        else: 
+        else:
             self.statusBar.showMessage('Done.')
         self.INFO.setEnabled(True)
-    
+
     # Filter PNs and delete them
     def TABLE_FILTER(self):
         self.FILTER.setEnabled(False)
         self.stop = False
-        PNtype_limit = np.array([self.cs2b(self.ut), self.cs2b(self.ds), self.cs2b(self.pp), self.cs2b(self.ot)]) 
+        PNtype_limit = np.array([self.cs2b(self.ut), self.cs2b(self.ds), self.cs2b(self.pp), self.cs2b(self.ot)])
         if self.MODEL.headerData(0,Qt.Horizontal) != 'Patent No.':
             self.statusBar.showMessage('Please import Patent Numers first!')
             self.FILTER.setEnabled(True)
@@ -400,7 +403,7 @@ class MainWindow(QMainWindow, ui):
             self.FILTER.setEnabled(True)
             return
         row = self.MODEL.rowCount()
-        
+
         #Time range
         Afy, Afm, Afd = self.APF.date().year(), self.APF.date().month(), self.APF.date().day()
         Aty, Atm, Atd = self.APT.date().year(), self.APT.date().month(), self.APT.date().day()
@@ -436,7 +439,7 @@ class MainWindow(QMainWindow, ui):
                     delete_list += [i]
                     self.MODEL.setItem(i,0,QtGui.QStandardItem('Filtered') )
                     continue
-            # Do not filter issue date if (1) user do not want to, (2) issue date isn't listed, (3) (start time <1790/1/1) AND (end time> now)                
+            # Do not filter issue date if (1) user do not want to, (2) issue date isn't listed, (3) (start time <1790/1/1) AND (end time> now)
             if len(ISD_str) > 1 and self.cs2b(self.ISDdis)==1 and not (datetime.datetime(Ify, Ifm, Ifd)<=datetime.datetime(1790,1,1) and datetime.datetime(Ity, Itm, Itd)>=now):
                 if not ptc.Date_filter(ISD_str, ISD_limit):
                     delete_list += [i]
@@ -450,10 +453,10 @@ class MainWindow(QMainWindow, ui):
         elif len(delete_list)>0:
             delete_list_arr = np.array(delete_list)
             for row_index in delete_list:
-                self.MODEL.removeRow(row_index-len(delete_list_arr[delete_list_arr<row_index]))    
-                self.statusBar.showMessage('Deleting the filtered data.....' ) 
-        self.statusBar.showMessage('Done Filtering: ' + str(len(delete_list)) + ' out of '  + str(row) + ' patents are filtered.' )  
-        self.FILTER.setEnabled(True) 
+                self.MODEL.removeRow(row_index-len(delete_list_arr[delete_list_arr<row_index]))
+                self.statusBar.showMessage('Deleting the filtered data.....' )
+        self.statusBar.showMessage('Done Filtering: ' + str(len(delete_list)) + ' out of '  + str(row) + ' patents are filtered.' )
+        self.FILTER.setEnabled(True)
 
     # import PN with a existing CSV file
     def import_PNlist_CSV(self, list_loc):
@@ -465,11 +468,11 @@ class MainWindow(QMainWindow, ui):
                 self.statusBar.showMessage('There are %d patent numbers in the list. Preparing the list...' % count)
                 QApplication.processEvents()
             csvr.seek(0)
-            self.MODEL.clear()            
+            self.MODEL.clear()
             self.MODEL.setHorizontalHeaderLabels(['Patent No.'] + ['']*16)
             i = 0
             error_count = 0
-            for row in reader:  
+            for row in reader:
                 if self.stop:
                     break
                 PN = str(row[0]).replace(' ','').replace(',','')
@@ -494,7 +497,7 @@ class MainWindow(QMainWindow, ui):
                             if (PN[0:2].lower not in ['re','rx','pp','ai']) and (requests.get("http://patft.uspto.gov/netacgi/nph-Parser?Sect2=PTO1&Sect2=HITOFF&p=1&u=/netahtml/PTO/search-bool.html&r=1&f=G&l=50&d=PALL&RefSrch=yes&Query=PN/1"+PN).status_code!=200):
                                 self.MODEL.setItem(i,1,QtGui.QStandardItem('Not a proper patent number! Please check again.') )
                                 error_count += 1
-                        except: 
+                        except:
                             self.MODEL.setItem(i,1,QtGui.QStandardItem('Not a proper patent number! Please check again.') )
                             error_count += 1
                 QApplication.processEvents()
@@ -515,7 +518,7 @@ class MainWindow(QMainWindow, ui):
         self.PDFD.setEnabled(False)
         self.stop = False
         if self.PNbt.isChecked():
-            self.MODEL.clear()  
+            self.MODEL.clear()
             list_loc = self.PNloc.text()
             if not os.path.exists(list_loc):
                 self.statusBar.showMessage("The path of input PN list doesn't exist. Please check again.")
@@ -524,7 +527,7 @@ class MainWindow(QMainWindow, ui):
             else:
                 self.import_PNlist_CSV(list_loc)
         elif self.Querybt.isChecked():
-            self.MODEL.clear()  
+            self.MODEL.clear()
             self.statusBar.showMessage('Preparing patent list...')
             if self.DB.currentIndex() == 0:
                 db = 'PTXT'
@@ -535,8 +538,8 @@ class MainWindow(QMainWindow, ui):
             self.statusBar.showMessage('There are %d patents can be searched with this query.' % total_PTnumber)
             if total_PTnumber == 0:
                 self.statusBar.showMessage(message)
-            elif total_PTnumber <= 50:      
-                self.MODEL.setHorizontalHeaderLabels(['Patent No.'])          
+            elif total_PTnumber <= 50:
+                self.MODEL.setHorizontalHeaderLabels(['Patent No.'])
                 for i in range(total_PTnumber):
                     self.MODEL.setItem(i,0,QtGui.QStandardItem(PN_1st_page[i]) )
                     QApplication.processEvents()
@@ -568,7 +571,7 @@ class MainWindow(QMainWindow, ui):
         self.FILTER.setEnabled(True)
         self.INFO.setEnabled(True)
         self.PDFD.setEnabled(True)
-        
+
     def handleSave(self):
         path = self.FileDialog2Line_OutCSV()
         try:
@@ -643,7 +646,7 @@ class MainWindow(QMainWindow, ui):
 if __name__ == '__main__':
     import sys
     from PyQt5.QtWidgets import QApplication
-    from PyQt5 import QtCore, QtGui, QtSvg 
+    from PyQt5 import QtCore, QtGui, QtSvg
 
     app = QApplication(sys.argv)
     wd = MainWindow()
